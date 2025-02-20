@@ -106,7 +106,7 @@
 						'libwebp_utils',
 					],
 					'direct_dependent_settings': {
-						'include_dirs': ['.'],
+						'include_dirs': ['./src'],
 					},
 					'conditions': [
 						['library=="shared_library"', { 'type': '<(library)' }, { 'type': 'none' }],
