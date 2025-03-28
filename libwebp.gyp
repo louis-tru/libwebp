@@ -5,6 +5,8 @@
 {
 	'variables': {
 		'use_system_libwebp%': 0,
+		'ndk_path%': '',
+		'OS%': '',
 	},
 	'conditions': [
 		['use_system_libwebp==0', {
@@ -43,6 +45,9 @@
 						'src/dsp/upsampling.c',
 						'src/dsp/yuv.c',
 					],
+					'conditions': [['OS=="android"', {
+						'include_dirs': ['<(ndk_path)/sources/android/cpufeatures'],
+					}]],
 				},
 				{
 					'target_name': 'libwebp_enc',
