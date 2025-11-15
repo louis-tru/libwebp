@@ -18,11 +18,36 @@ function(webp_check_compiler_flag WEBP_SIMD_FLAG ENABLE_SIMD)
   unset(WEBP_HAVE_FLAG_${WEBP_SIMD_FLAG} CACHE)
   cmake_push_check_state()
   set(CMAKE_REQUIRED_INCLUDES ${CMAKE_CURRENT_SOURCE_DIR})
+
+  # If building a universal binary on macOS, we need to check if one of the
+  # architectures supports the SIMD flag.
+  set(OSX_CHECK "")
+  if(APPLE AND CMAKE_OSX_ARCHITECTURES)
+    list(LENGTH CMAKE_OSX_ARCHITECTURES ARCH_COUNT)
+    if(ARCH_COUNT EQUAL 2)
+      set(OSX_CHECK "defined(WEBP_CAN_HAVE_${WEBP_SIMD_FLAG}) &&")
+    endif()
+  endif()
+
   check_c_source_compiles(
     "
       #include \"${CMAKE_CURRENT_LIST_DIR}/../src/dsp/dsp.h\"
+      #if defined(__APPLE__)
+      #if defined(__x86_64__)
+      #define WEBP_CAN_HAVE_SSE2
+      #define WEBP_CAN_HAVE_SSE41
+      #define WEBP_CAN_HAVE_AVX2
+      #elif defined(__aarch64__)
+      #define WEBP_CAN_HAVE_NEON
+      #endif
+      // MIPS intrinsics are not supported on macOS, but we have to define them
+      // so that the check happens.
+      #define WEBP_CAN_HAVE_MIPS32
+      #define WEBP_CAN_HAVE_MIPS_DSP_R2
+      #define WEBP_CAN_HAVE_MSA
+      #endif
       int main(void) {
-        #if !defined(WEBP_USE_${WEBP_SIMD_FLAG})
+        #if ${OSX_CHECK} !defined(WEBP_USE_${WEBP_SIMD_FLAG})
         this is not valid code
         #endif
         return 0;
@@ -38,9 +63,9 @@ function(webp_check_compiler_flag WEBP_SIMD_FLAG ENABLE_SIMD)
 endfunction()
 
 # those are included in the names of WEBP_USE_* in c++ code.
-set(WEBP_SIMD_FLAGS "SSE41;SSE2;MIPS32;MIPS_DSP_R2;NEON;MSA")
+set(WEBP_SIMD_FLAGS "AVX2;SSE41;SSE2;MIPS32;MIPS_DSP_R2;NEON;MSA")
 set(WEBP_SIMD_FILE_EXTENSIONS
-    "_sse41.c;_sse2.c;_mips32.c;_mips_dsp_r2.c;_neon.c;_msa.c")
+    "_avx2.c;_sse41.c;_sse2.c;_mips32.c;_mips_dsp_r2.c;_neon.c;_msa.c")
 if(MSVC AND CMAKE_C_COMPILER_ID STREQUAL "MSVC")
   # With at least Visual Studio 12 (2013)+ /arch is not necessary to build SSE2
   # or SSE4 code unless a lesser /arch is forced. MSVC does not have a SSE4
@@ -50,12 +75,14 @@ if(MSVC AND CMAKE_C_COMPILER_ID STREQUAL "MSVC")
   if(MSVC_VERSION GREATER_EQUAL 1800 AND NOT CMAKE_C_FLAGS MATCHES "/arch:")
     set(SIMD_ENABLE_FLAGS)
   else()
-    set(SIMD_ENABLE_FLAGS "/arch:AVX;/arch:SSE2;;;;")
+    set(SIMD_ENABLE_FLAGS "/arch:AVX2;/arch:AVX;/arch:SSE2;;;;")
   endif()
   set(SIMD_DISABLE_FLAGS)
 else()
-  set(SIMD_ENABLE_FLAGS "-msse4.1;-msse2;-mips32;-mdspr2;-mfpu=neon;-mmsa")
-  set(SIMD_DISABLE_FLAGS "-mno-sse4.1;-mno-sse2;;-mno-dspr2;;-mno-msa")
+  set(SIMD_ENABLE_FLAGS
+      "-mavx2;-msse4.1;-msse2;-mips32;-mdspr2;-mfpu=neon;-mmsa")
+  set(SIMD_DISABLE_FLAGS
+      "-mno-avx2;-mno-sse4.1;-mno-sse2;;-mno-dspr2;;-mno-msa")
 endif()
 
 set(WEBP_SIMD_FILES_TO_INCLUDE)
