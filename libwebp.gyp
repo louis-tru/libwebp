@@ -105,7 +105,6 @@
 							'include_dirs': ['<(ndk_path)/sources/android/cpufeatures'],
 						}],
 						['arch=="arm" or arch=="arm64"', {
-							'defines': ['WEBP_USE_NEON=1'],
 							'sources+': [
 								'src/dsp/rescaler_neon.c',
 								'src/dsp/upsampling_neon.c',
@@ -120,7 +119,6 @@
 							]
 						}],
 						['arch=="x86" or arch=="x64"', {
-							'defines': ['WEBP_USE_SSE2=1'],
 							'sources+': [
 								'src/dsp/lossless_sse2.c',
 								'src/dsp/cost_sse2.c',
@@ -141,12 +139,6 @@
 								'src/dsp/alpha_processing_sse41.c',
 								'src/dsp/alpha_processing_sse2.c',
 							]
-						}],
-						['arch=="mips"', {
-							'defines': ['WEBP_USE_MIPS32=1'],
-						}],
-						['arch=="mips64"', {
-							'defines': ['WEBP_USE_MIPS_DSP_R2=1'],
 						}],
 						['arch=="mips" or arch=="mips64"', {
 							'sources+': [
